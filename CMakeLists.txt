@@ -9,7 +9,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 add_executable(run_tests
-    ./tests/range_test.cpp)
+    ./tests/range_test.cpp
+    ./tests/zip_test.cpp
+    ./tests/zip_range_test.cpp)
 
 target_link_libraries(run_tests GTest::gtest GTest::gtest_main)
 

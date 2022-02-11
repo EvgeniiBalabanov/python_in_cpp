@@ -3,36 +3,39 @@
 
 namespace py {
 
+template<typename Type>
 class range {
 public:
+  using value_type = Type;
   class iterator {
   public:
-    iterator(size_t value) : value_(value) {};
-    size_t operator*() const {
+    iterator(value_type& value) : value_(value) {};
+    value_type& operator*() {
       return value_;
     }
-    bool operator!=(iterator other) {
+    bool operator!=(iterator other) const {
       return value_ != *other;
     }
-    bool operator++() {
-      return value_++;
+    iterator& operator++() {
+      ++value_;
+      return *this;
     }
   private:
-    size_t value_;
+    value_type& value_;
   };
 
-  range(size_t end) : begin_(0), end_(end) {}
-  range(size_t begin, size_t end) : begin_(begin), end_(end) {}
+  range(value_type end) : begin_(value_type()), end_(end) {}
+  range(value_type begin, value_type end) : begin_(begin), end_(end) {}
 
-  iterator begin() const {
+  iterator begin() {
     return iterator(begin_);
   }
-  iterator end() const {
+  iterator end() {
     return iterator(end_);
   }
 private:
-  size_t begin_;
-  size_t end_;
+  value_type begin_;
+  value_type end_;
 };
 
 } // namespace py
