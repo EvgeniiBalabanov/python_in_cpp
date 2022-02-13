@@ -1,44 +1,92 @@
 #pragma once
-#include <utility>
+#include <tuple>
 
 namespace py {
 
-template<typename ContainerFirst, typename ContainerSecond>
-class zip {
+namespace impl {
+
+template<typename Type>
+class ZipBase { // class ZipBase : Type {}; ???
 public:
-  using value_type = std::pair<typename ContainerFirst::value_type, typename ContainerSecond::value_type>;
-  class iterator {
-  public:
-    using first_iterator = typename ContainerFirst::iterator;
-    using second_iterator = typename ContainerSecond::iterator;
+  using container_iterator = typename Type::iterator;
 
-    iterator(first_iterator first, second_iterator second) : first_(first), second_(second) {}
-    value_type operator*() {
-      return {*first_, *second_};
-    }
-    bool operator!=(iterator other) const {
-      return first_ != other.first_ && second_ != other.second_;
-    }
-    iterator operator++() {
-      ++first_;
-      ++second_;
-      return *this;
-    }
-  private:
-    first_iterator first_;
-    second_iterator second_;
-  };
-  zip(ContainerFirst& first, ContainerSecond& second) : first_(first), second_(second) {}
+  ZipBase(Type& container) : container_(container) {}
 
-  iterator begin() {
-    return iterator(first_.begin(), second_.begin());
+  container_iterator begin() const {
+    return container_.begin();
   }
-  iterator end() {
-    return iterator(first_.end(), second_.end());
+
+  container_iterator end() const {
+    return container_.end();
   }
+
 private:
-  ContainerFirst& first_;
-  ContainerSecond& second_;
+  Type& container_;
+};
+
+template<typename Iterator>
+class IteratorBase {
+public:
+  IteratorBase(Iterator iterator) : iterator_(iterator) {}
+
+  bool operator!=(const IteratorBase& other) const {
+    return iterator_ != other.iterator_;
+  }
+
+  auto operator*() const {
+    return std::tie(*iterator_);
+  }
+
+  IteratorBase& operator++() {
+    ++iterator_;
+    return *this;
+  }
+
+private:
+  Iterator iterator_;
+};
+
+template<typename Head, typename ...Iterators>
+class iterator : private IteratorBase<Head>, private iterator<Iterators...> {
+public:
+  iterator(Head head, Iterators ...iterators) : iterator<Iterators...>(iterators...), IteratorBase<Head>(head) {};
+
+  bool operator!=(const iterator& other) const {
+    const auto& derived = *dynamic_cast<const iterator<Iterators...>*>(&other);
+    return IteratorBase<Head>::operator!=(other) || iterator<Iterators...>::operator!=(derived);
+  }
+
+  auto operator*() const {
+    return std::tuple_cat(IteratorBase<Head>::operator*(), iterator<Iterators...>::operator*());
+  }
+
+  iterator& operator++() {
+    IteratorBase<Head>::operator++();
+    iterator<Iterators...>::operator++();
+    return *this;
+  }
+};
+
+template<typename Head>
+class iterator<Head> : public IteratorBase<Head> {
+public:
+  iterator(Head head) : IteratorBase<Head>(head) {};
+};
+
+}  // namespace impl
+
+template<typename ...Containers>
+class zip : private impl::ZipBase<Containers>... {
+public:
+  zip(Containers& ...containers) : impl::ZipBase<Containers>(containers)... {}
+
+  auto begin() {
+    return impl::iterator(impl::ZipBase<Containers>::begin()...);
+  }
+
+  auto end() {
+    return impl::iterator(impl::ZipBase<Containers>::end()...);
+  }
 };
 
 } // namespace py
