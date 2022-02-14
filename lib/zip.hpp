@@ -6,7 +6,7 @@ namespace py {
 namespace impl {
 
 template <typename Iterator>
-class IteratorBase : public Iterator {
+class IteratorBase {
  public:
   IteratorBase(Iterator iterator) : iterator_(iterator) {}
 
